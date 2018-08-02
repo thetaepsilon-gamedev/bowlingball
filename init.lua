@@ -101,7 +101,7 @@ minetest.register_entity(n, {
 
 -- a throwable ball item.
 local take_one = function(stack)
-	stack:set_count(stack:get_count() - 1)
+	return stack:set_count(stack:get_count() - 1)
 end
 
 local head = 1.6
