@@ -5,7 +5,7 @@ rebounds if a sudden stop is detected.
 ]]
 
 -- returns true if the vector was modified
-local dampening = -0.7
+local dampening = -0.4
 local rebound_if_zero = function(oldv, newv, k)
 	local v = newv[k]
 	--print("# current velocity", k, v)
