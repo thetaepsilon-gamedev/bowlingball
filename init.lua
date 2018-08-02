@@ -126,4 +126,8 @@ minetest.register_craftitem(n, {
 	on_use = use,
 	inventory_image = tex,
 })
+-- optional crafts to follow
+local mp = minetest.get_modpath(minetest.get_current_modname()).."/"
+dofile(mp.."crafting.lua")
+
 
