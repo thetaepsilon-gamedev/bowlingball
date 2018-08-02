@@ -100,8 +100,11 @@ minetest.register_entity(n, {
 
 
 -- a throwable ball item.
+-- fix a complaint about itemstacks from on_use despite clearly returning one...
+-- give it an itemstring instead to keep it happy.
 local take_one = function(stack)
-	return stack:set_count(stack:get_count() - 1)
+	stack:set_count(stack:get_count() - 1)
+	return stack:to_string()
 end
 
 local head = 1.6
