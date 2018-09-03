@@ -3,6 +3,7 @@ Bowling ball entity:
 moves across surfaces without friction,
 rebounds if a sudden stop is detected.
 ]]
+local mp = minetest.get_modpath(minetest.get_current_modname()).."/"
 
 -- returns true if the vector was modified
 local dampening = -0.4
@@ -162,6 +163,21 @@ minetest.register_entity(n, {
 	on_rightclick = on_rightclick,
 	on_punch = on_punch,
 })
+-- TNT version
+local tnt_step = dofile(mp.."tntball_logic.lua")
+minetest.register_entity("bowlingball:tntball", {
+	visual = "sprite",
+	visual_size = {x=0.75,y=0.75},
+	textures = { "bowlingball_tntball.png" },
+	-- same armor groups and gravity, currently
+	on_activate = on_activate,
+	on_step = tnt_step,
+	physical = true,
+	collide_with_objects = true,
+	collisionbox = {-r, -r, -r, r, r, r},
+	-- no on_rightclick, can't pick up a bomb... mwuhahahaha
+	on_punch = on_punch,
+})
 
 
 
@@ -193,7 +209,6 @@ minetest.register_craftitem(n, {
 	inventory_image = tex,
 })
 -- optional crafts to follow
-local mp = minetest.get_modpath(minetest.get_current_modname()).."/"
 dofile(mp.."crafting.lua")
 
 
