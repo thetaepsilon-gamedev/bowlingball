@@ -23,6 +23,8 @@ end
 
 -- ball radius - used for some checking around the ball
 local r = 0.3
+-- scale of acceleration from slope detection.
+local ds = 4.0
 -- forward declaration of names used in varios functions below.
 local ballreturn = "bowlingball:return"
 local n = "bowlingball:ball"
@@ -104,16 +106,17 @@ local step = function(self, dtime)
 	local x = rebound_if_zero(oldv, newv, "x")
 	local y = rebound_if_zero(oldv, newv, "y")
 	local z = rebound_if_zero(oldv, newv, "z")
-	local modified = x or y or z
-	-- update engine velocity on change
-	if modified then
-		--print("# updating velocity")
-		self.object:set_velocity(newv)
-	end
-	self.previous = newv
 
+	-- apply slope acceleration.
 	local p = self.object:get_pos()
-	print(detect(p.x, p.y, p.z, r))
+	local _,_,_,_, dx, dz = detect(p.x, p.y, p.z, r)
+	newv.x = newv.x + (dx * dtime * ds)
+	newv.z = newv.z + (dz * dtime * ds)
+
+	-- we may well be constantly updating due to slope acceleration,
+	-- so just refresh the velocity anyway.
+	self.object:set_velocity(newv)
+	self.previous = newv
 end
 
 -- object is fairly dense.
@@ -166,6 +169,7 @@ minetest.register_entity(n, {
 	collisionbox = {-r, -r, -r, r, r, r},
 	on_rightclick = on_rightclick,
 	on_punch = on_punch,
+	stepheight = 0.501,
 })
 -- TNT version
 
