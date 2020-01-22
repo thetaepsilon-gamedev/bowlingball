@@ -10,7 +10,7 @@ local mk_getray = function(raycast)
 	local p1 = {}
 	local p2 = {}
 
-	return function(x, y1, z, y2, r)
+	return function(x, y1, z, y2, max)
 		p1.x = x
 		p1.y = y1
 		p1.z = z
@@ -21,9 +21,9 @@ local mk_getray = function(raycast)
 		local cast = raycast(p1, p2, true, true)
 		local pointed_thing = cast:next()
 
-		-- if we didn't find anything, assume a max distance of r.
+		-- if we didn't find anything, assume a max distance.
 		-- this is to prevent slope calculations going to infinity.
-		if not pointed_thing then return r end
+		if not pointed_thing then return max end
 
 		-- otherwise, get exact intersection and return Y difference
 		local pos = assert(pointed_thing.intersection_point)
@@ -58,12 +58,15 @@ return function(raycast) -- dependency injection
 	local detect = function(ox, oy, oz, r)
 		-- bump the radius to avoid self intersection as above.
 		local r = r + tiny
+		-- max dy distance: 3*r (to bottom of ball then the ball's height again)
+		-- to avoid physics going too bonkers.
+		local max = r + r + r
+		local down = oy - max
 		-- nn, np, etc - negative or positive for x, z in that order
-		local down = oy - r
-		local nn = ray(ox-r, oy, oz-r, down, r)
-		local np = ray(ox-r, oy, oz+r, down, r)
-		local pn = ray(ox+r, oy, oz-r, down, r)
-		local pp = ray(ox+r, oy, oz+r, down, r)
+		local nn = ray(ox-r, oy, oz-r, down, max)
+		local np = ray(ox-r, oy, oz+r, down, max)
+		local pn = ray(ox+r, oy, oz-r, down, max)
+		local pp = ray(ox+r, oy, oz+r, down, max)
 
 		return nn, np, pn, pp, calc_dxz(nn, np, pn, pp)
 	end
