@@ -4,6 +4,7 @@ moves across surfaces without friction,
 rebounds if a sudden stop is detected.
 ]]
 local mp = minetest.get_modpath(minetest.get_current_modname()).."/"
+local detect = dofile(mp.."slope_handling.lua")(minetest.raycast)
 
 -- returns true if the vector was modified
 local dampening = -0.4
@@ -110,6 +111,9 @@ local step = function(self, dtime)
 		self.object:set_velocity(newv)
 	end
 	self.previous = newv
+
+	local p = self.object:get_pos()
+	print(detect(p.x, p.y, p.z, r))
 end
 
 -- object is fairly dense.
