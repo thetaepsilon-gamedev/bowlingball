@@ -24,9 +24,11 @@ end
 -- ball radius - used for some checking around the ball
 local r = 0.3
 -- scale of acceleration from slope detection.
-local ds = 20
+local ds = 12
 -- downwards roll acceleration bias.
-local bias = 1.5
+local bias = 1.8
+-- dampening factor of ball rebound.
+local k = -0.3
 -- forward declaration of names used in varios functions below.
 local ballreturn = "bowlingball:return"
 local n = "bowlingball:ball"
@@ -85,6 +87,44 @@ end
 
 
 
+local cast = minetest.raycast
+
+
+
+local ve = mtrequire("ds2.minetest.vectorextras")
+local mul = ve.scalar_multiply.raw
+local vadd = ve.add.raw
+local vnew = ve.wrap
+local unwrap = ve.unwrap
+
+-- see lua_prelude in devsupport_modpack
+local sign = math.sign
+
+local get_axial_rebound = function(px, py, pz, old_speed, new_speed, ax, ay, az)
+	-- only perform this rebound check on an abrupt stop.
+	if new_speed ~= 0 then
+		return new_speed
+	end
+
+	-- to get ray endpoints, offset in the provided direction.
+	-- the sign of the direction we look in is determined by the sign of the old axial velocity.
+	local s = sign(old_speed)
+
+	-- p1 is just outside the entity border (see step() below)
+	local p1 = vnew(vadd(px, py, pz, mul(s, ax, ay, az)))
+
+	-- then do the same but step the ray a tiny bit further to see what's there.
+	s = s * 1.1
+	local p2 = vnew(vadd(px, py, pz, mul(s, ax, ay, az)))
+	local ray = cast(p1, p2, true, false)	-- liquids won't have hard stopped us anyway.
+	local collided = ray:next()
+
+	-- if there is anything there, rebound in the opposite direction, else remain on course.
+	return collided and (k * old_speed) or old_speed
+end
+
+
+
 local step = function(self, dtime)
 	-- first and foremost: check if the block below us is ball return node.
 	-- if this indicates that it did anything,
@@ -94,33 +134,35 @@ local step = function(self, dtime)
 		return
 	end
 
-	-- if this is the first tick,
-	-- we won't have a previous velocity yet, so skip the processing
-	local oldv = self.previous
-	local newv = self.object:get_velocity()
-	if not oldv then
-		self.previous = newv
-		return
-	end
 
-	-- look at the components of the vector to see if any are zero.
-	-- if so, set to the negation of the previous component's value.
-	--local x = rebound_if_zero(oldv, newv, "x")
-	--local y = rebound_if_zero(oldv, newv, "y")
-	--local z = rebound_if_zero(oldv, newv, "z")
+	-- on a given axis, check for abrupt stops and cast rays to see if we hit anything.
+	local oldv = self.previous
+	local px, py, pz = unwrap(self.object:get_pos())
+	local newv = self.object:get_velocity()
+	local nx, ny, nz = unwrap(newv)
+
+	if oldv then	-- skip if no data available yet from previous tick
+		local ra = offset
+		local xc = get_axial_rebound(px, py, pz, oldv.x, nx, ra, 0,  0 )
+		local yc = get_axial_rebound(px, py, pz, oldv.y, ny, 0,  ra, 0 )
+		local zc = get_axial_rebound(px, py, pz, oldv.z, nz, 0,  0,  ra)
+		nx = xc
+		ny = yc
+		nz = zc
+	end
+	self.previous = newv
+
 
 	-- apply slope acceleration.
-	local p = self.object:get_pos()
-	local _,_,_,_, dx, dz = detect(p.x, p.y, p.z, r)
+	local _,_,_,_, dx, dz = detect(px, py, pz, r)
 	-- if downwards movement is detected, bias the acceleration a bit.
-	local b = ((newv.y < 0) and bias or 1.0)
-	newv.x = newv.x + (dx * dtime * ds * b)
-	newv.z = newv.z + (dz * dtime * ds * b)
+	local b = ((ny < 0) and bias or 1.0)
+	nx = nx + (dx * dtime * ds * b)
+	nz = nz + (dz * dtime * ds * b)
 
 	-- we may well be constantly updating due to slope acceleration,
 	-- so just refresh the velocity anyway.
-	self.object:set_velocity(newv)
-	self.previous = newv
+	self.object:set_velocity(vnew(nx, ny, nz))
 end
 
 -- object is fairly dense.
@@ -173,7 +215,7 @@ minetest.register_entity(n, {
 	collisionbox = {-r, -r, -r, r, r, r},
 	on_rightclick = on_rightclick,
 	on_punch = on_punch,
-	stepheight = 0.501,
+	stepheight = 0.601,
 })
 -- TNT version
 
