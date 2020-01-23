@@ -24,7 +24,9 @@ end
 -- ball radius - used for some checking around the ball
 local r = 0.3
 -- scale of acceleration from slope detection.
-local ds = 4.0
+local ds = 20
+-- downwards roll acceleration bias.
+local bias = 1.5
 -- forward declaration of names used in varios functions below.
 local ballreturn = "bowlingball:return"
 local n = "bowlingball:ball"
@@ -103,15 +105,17 @@ local step = function(self, dtime)
 
 	-- look at the components of the vector to see if any are zero.
 	-- if so, set to the negation of the previous component's value.
-	local x = rebound_if_zero(oldv, newv, "x")
-	local y = rebound_if_zero(oldv, newv, "y")
-	local z = rebound_if_zero(oldv, newv, "z")
+	--local x = rebound_if_zero(oldv, newv, "x")
+	--local y = rebound_if_zero(oldv, newv, "y")
+	--local z = rebound_if_zero(oldv, newv, "z")
 
 	-- apply slope acceleration.
 	local p = self.object:get_pos()
 	local _,_,_,_, dx, dz = detect(p.x, p.y, p.z, r)
-	newv.x = newv.x + (dx * dtime * ds)
-	newv.z = newv.z + (dz * dtime * ds)
+	-- if downwards movement is detected, bias the acceleration a bit.
+	local b = ((newv.y < 0) and bias or 1.0)
+	newv.x = newv.x + (dx * dtime * ds * b)
+	newv.z = newv.z + (dz * dtime * ds * b)
 
 	-- we may well be constantly updating due to slope acceleration,
 	-- so just refresh the velocity anyway.
